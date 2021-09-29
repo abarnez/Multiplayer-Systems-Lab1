@@ -181,30 +181,55 @@ static public class AssignmentPart2
     const int PartyCharacterSaveDataSignifier = 0;
     const int EquipmentSaveDataSignifier = 1;
     static LinkedList<PartySaveData> parties;
+    private static uint lastUsedIndex;
     static public void GameStart()
     {
-
         GameContent.RefreshUI();
+        LoadPartyMetaData();
+        
+       
 
     }
 
     static public List<string> GetListOfPartyNames()
     {
-        return new List<string>() {
-            "sample 1",
-            "sample 2",
-            "sample 3"
-        };
+        if (parties == null)
+            return new List<string>();
+
+        List<string> pNames = new List<string>();
+
+        foreach(PartySaveData psd in parties)
+        {
+            pNames.Add(psd.name);
+        }
+
+        return pNames;
+
 
     }
 
     static public void LoadPartyDropDownChanged(string selectedName)
     {
+        
+
+        foreach (PartySaveData psd in parties)
+        {
+            if(selectedName == psd.name)
+            {
+                psd.Load();
+            }
+        }
         GameContent.RefreshUI();
     }
 
     static public void SavePartyButtonPressed()
     {
+        lastUsedIndex++;
+        PartySaveData p = new PartySaveData(lastUsedIndex, GameContent.GetPartyNameFromInput());
+        parties.AddLast(p);
+        
+        SavePartyMetaData();
+        p.Save();
         GameContent.RefreshUI();
     }
 
@@ -223,12 +248,48 @@ static public class AssignmentPart2
     static public void SavePartyMetaData()
     {
         StreamWriter sw = new StreamWriter(Application.dataPath + Path.DirectorySeparatorChar + PartyMetaFile);
+
+        sw.WriteLine("1, " + lastUsedIndex);
+
+        foreach(PartySaveData pData in parties)
+        {
+            sw.WriteLine("2, " + pData.index + "," + pData.name);
+        }
+        sw.Close();
     }
 
     static public void LoadPartyMetaData()
     {
-        StreamReader sr = new StreamReader(Application.dataPath + Path.DirectorySeparatorChar + PartyMetaFile);
+        // StreamReader sr = new StreamReader(Application.dataPath + Path.DirectorySeparatorChar + PartyMetaFile);
+        parties = new LinkedList<PartySaveData>();
+        string path = Application.dataPath + Path.DirectorySeparatorChar + PartyMetaFile;
+        if (File.Exists(path))
+        {       
+            string line = "";
+            StreamReader sr = new StreamReader(path);
+
+            while ((line = sr.ReadLine()) != null)
+            {
+                string[] csv = line.Split(',');
+
+                int saveDataSignifier = int.Parse(csv[0]);
+            
+                if(saveDataSignifier == 1)
+                {
+                    lastUsedIndex = uint.Parse(csv[0]);
+                } else if (saveDataSignifier == 2)
+                {
+                    parties.AddLast(new PartySaveData(uint.Parse(csv[1]), csv[2]));
+                }             
+            }
+           // sr.Close();
+        }
+        GameContent.RefreshUI();
     }
+}
+
+
+    
 
     class PartySaveData
     {
@@ -236,22 +297,21 @@ static public class AssignmentPart2
 
         public uint index;
         public string name;
+    const int PartyCharacterSaveDataSignifier = 0;
+    const int EquipmentSaveDataSignifier = 1;
 
-        public PartySaveData(uint index, string name)
+    public PartySaveData(uint index, string name)
         {
             this.index = index;
             this.name = name;
         }
 
-        public void LoadPartyMeta()
-        {
-
-        }
+    
 
         public void Save()
         {
 
-            StreamWriter sw = new StreamWriter(Application.dataPath + Path.DirectorySeparatorChar + index + "OurBelovedSaveFile.txt");
+            StreamWriter sw = new StreamWriter(Application.dataPath + Path.DirectorySeparatorChar + index + ".txt");
             //using (StreamWriter sw = new StreamWriter(Application.dataPath + Path.DirectorySeparatorChar + "OurBelovedSaveFile.txt"))
             foreach (PartyCharacter pc in GameContent.partyCharacters)
             {
@@ -269,7 +329,7 @@ static public class AssignmentPart2
 
         public void Load()
         {
-            string path = Application.dataPath + Path.DirectorySeparatorChar + "OurBelovedSaveFile.txt";
+            string path = Application.dataPath + Path.DirectorySeparatorChar  + index + ".txt";
 
             if (File.Exists(path))
             {
@@ -292,6 +352,7 @@ static public class AssignmentPart2
                     {
                         GameContent.partyCharacters.Last.Value.equipment.AddLast(int.Parse(csv[1]));
                     }
+               // sr.Close();
                 }
             }
             GameContent.RefreshUI();     
@@ -301,7 +362,7 @@ static public class AssignmentPart2
 
     
 
-}
+
 
 #endregion
 
